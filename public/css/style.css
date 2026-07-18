@@ -1,0 +1,117 @@
+:root {
+  --coklat: #4a3222;
+  --coklat-terang: #7a5a3f;
+  --krem: #fbf3e7;
+  --hijau: #0a6b00;
+  --merah: #b3261e;
+  --border: #e2d6c3;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--krem);
+  color: #2b2117;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- LOGIN ---------- */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--coklat) 0%, var(--coklat-terang) 100%);
+}
+
+.login-box {
+  background: #fff;
+  padding: 36px 32px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.login-box h1 { margin: 0 0 2px; color: var(--coklat); }
+.login-box .subtitle { margin: 0 0 20px; color: #777; font-size: 14px; }
+.login-box label { display: block; margin: 10px 0 4px; font-size: 13px; font-weight: 600; }
+.login-box input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
+}
+.login-box button {
+  margin-top: 16px; width: 100%; padding: 10px; background: var(--coklat); color: #fff;
+  border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+}
+.login-box button:hover { background: var(--coklat-terang); }
+.hint { font-size: 12px; color: #999; margin-top: 14px; }
+.error-text { color: var(--merah); font-size: 13px; min-height: 16px; }
+
+/* ---------- APP SHELL ---------- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--coklat); color: #fff; padding: 12px 20px;
+}
+.brand { font-weight: 700; font-size: 18px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; font-size: 14px; }
+
+.notif-banner {
+  background: var(--merah); color: #fff; padding: 10px 20px; font-size: 14px;
+}
+
+.tabs {
+  display: flex; gap: 4px; background: #fff; padding: 0 16px; border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  border: none; background: transparent; padding: 12px 18px; font-size: 14px; cursor: pointer;
+  border-bottom: 3px solid transparent; color: #555;
+}
+.tab-btn.active { color: var(--coklat); border-bottom-color: var(--coklat); font-weight: 600; }
+
+.tab-content { display: none; padding: 18px 20px; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+.card {
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; margin-bottom: 16px;
+}
+.card h3 { margin-top: 0; color: var(--coklat); }
+
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+
+.btn-primary, .btn-secondary, button[type="submit"] {
+  padding: 8px 14px; border-radius: 6px; border: 1px solid var(--coklat); cursor: pointer; font-size: 13px;
+}
+.btn-primary, button[type="submit"] { background: var(--coklat); color: #fff; }
+.btn-primary:hover, button[type="submit"]:hover { background: var(--coklat-terang); }
+.btn-secondary { background: #fff; color: var(--coklat); }
+.btn-secondary:hover { background: var(--krem); }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th, .data-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+.data-table th { color: #777; font-weight: 600; }
+.data-table td button { font-size: 12px; padding: 3px 8px; }
+
+.inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.inline-form input, .inline-form select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+
+.stacked-form { display: flex; flex-direction: column; gap: 4px; max-width: 320px; }
+.stacked-form label { font-size: 12px; font-weight: 600; margin-top: 6px; }
+.stacked-form input, .stacked-form select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+.stacked-form button { margin-top: 10px; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .split { grid-template-columns: 1fr; } }
+
+.total-preview { font-size: 16px; font-weight: 700; color: var(--coklat); }
+
+.summary-cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.summary { flex: 1; min-width: 140px; text-align: center; }
+.summary span { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+.summary strong { font-size: 18px; }
+.summary.saldo strong { color: var(--hijau); }
+
+.periode-label { font-style: italic; color: #666; margin: 4px 0 14px; }

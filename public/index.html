@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Roti Maryam - Stock, Invoice & Kas</title>
+
+<!-- Tailwind (CDN JIT compiler) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          coklat: { DEFAULT: '#4a3222', light: '#7a5a3f' },
+        },
+      },
+    },
+  };
+</script>
+
+<!-- PDF, PNG & Excel export (client-side) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="bg-amber-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
+
+<!-- ======================= LOGIN ======================= -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-coklat to-coklat-light p-4">
+  <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-8">
+    <div class="flex items-center justify-between mb-1">
+      <h1 class="text-2xl font-bold text-coklat dark:text-amber-400">Roti Maryam</h1>
+      <button id="theme-toggle" class="text-xl" title="Ganti tema">🌙</button>
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Stock, Invoice &amp; Kas</p>
+    <form id="login-form" class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold mb-1">Email</label>
+        <input type="email" id="login-email" required autocomplete="username"
+          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-coklat" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold mb-1">Password</label>
+        <input type="password" id="login-password" required autocomplete="current-password"
+          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-coklat" />
+      </div>
+      <p id="login-error" class="text-red-600 dark:text-red-400 text-xs min-h-[16px]"></p>
+      <button type="submit" class="w-full py-2.5 rounded-lg bg-coklat hover:bg-coklat-light text-white text-sm font-semibold transition-colors">Login</button>
+    </form>
+    <p class="text-xs text-gray-400 mt-4">Belum punya akun? Buat lewat Firebase Console &gt; Authentication &gt; Users.</p>
+  </div>
+</div>
+
+<!-- ======================= APP SHELL ======================= -->
+<div id="app-shell" class="hidden min-h-screen">
+  <header class="flex items-center justify-between bg-coklat text-white px-4 sm:px-6 py-3">
+    <div class="font-bold text-lg">Roti Maryam</div>
+    <div class="flex items-center gap-2 sm:gap-4 text-sm">
+      <button id="theme-toggle-app" class="text-lg leading-none" title="Ganti tema">🌙</button>
+      <span id="user-email" class="hidden sm:inline text-amber-100"></span>
+      <button id="logout-btn" class="px-3 py-1.5 rounded-md border border-white/40 hover:bg-white/10 text-xs sm:text-sm">Logout</button>
+    </div>
+  </header>
+
+  <div id="notif-banner" class="hidden bg-red-600 text-white text-sm px-4 sm:px-6 py-2"></div>
+
+  <nav class="flex gap-1 bg-white dark:bg-gray-900 border-b border-amber-200 dark:border-gray-800 px-2 sm:px-6 overflow-x-auto whitespace-nowrap">
+    <button class="tab-btn px-4 py-3 text-sm border-b-2 border-coklat text-coklat dark:text-amber-400 dark:border-amber-400 font-semibold" data-tab="stock">Stock</button>
+    <button class="tab-btn px-4 py-3 text-sm border-b-2 border-transparent text-gray-500 dark:text-gray-400" data-tab="invoice">Invoice</button>
+    <button class="tab-btn px-4 py-3 text-sm border-b-2 border-transparent text-gray-500 dark:text-gray-400" data-tab="kas">Kas</button>
+    <button class="tab-btn px-4 py-3 text-sm border-b-2 border-transparent text-gray-500 dark:text-gray-400" data-tab="laporan">Laporan</button>
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-3 sm:p-6 space-y-4">
+
+    <!-- ---------------- TAB: STOCK ---------------- -->
+    <section id="tab-stock" class="tab-content space-y-4">
+      <div class="flex flex-wrap gap-2">
+        <button id="btn-produk-baru" class="btn-secondary">+ Produk Baru</button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Produk &amp; Stok</h3>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Nama Produk</th><th>Satuan</th><th>Harga</th><th>Stok</th><th></th></tr></thead>
+            <tbody id="tabel-produk"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Update Stok</h3>
+        <form id="form-stok" class="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center">
+          <select id="stok-produk" required class="field"></select>
+          <select id="stok-jenis" class="field">
+            <option value="masuk">masuk</option>
+            <option value="keluar">keluar</option>
+          </select>
+          <input type="number" id="stok-jumlah" placeholder="Jumlah" min="1" required class="field" />
+          <input type="text" id="stok-keterangan" placeholder="Keterangan (mis. produksi)" class="field flex-1 min-w-[160px]" />
+          <button type="submit" class="btn-primary">Simpan</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Riwayat Stok</h3>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th>Produk</th><th>Jenis</th><th>Jumlah</th><th>Keterangan</th><th></th></tr></thead>
+            <tbody id="tabel-stok-log"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- TAB: INVOICE ---------------- -->
+    <section id="tab-invoice" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card">
+          <h3 class="card-title">Buat Invoice Baru</h3>
+          <form id="form-invoice-item" class="flex flex-col gap-2 max-w-md">
+            <label class="field-label">Nama Pelanggan</label>
+            <input type="text" id="inv-pelanggan" class="field" />
+
+            <label class="field-label">Tanggal</label>
+            <input type="date" id="inv-tanggal" required class="field" />
+
+            <hr class="border-amber-200 dark:border-gray-700 my-2" />
+
+            <label class="field-label">Produk</label>
+            <select id="inv-produk" class="field"></select>
+
+            <label class="field-label">Qty</label>
+            <input type="number" id="inv-qty" value="1" min="1" class="field" />
+
+            <label class="field-label">Harga Satuan</label>
+            <input type="number" id="inv-harga" min="0" class="field" />
+
+            <button type="submit" class="btn-secondary self-start mt-1">+ Tambah Item</button>
+          </form>
+
+          <div class="overflow-x-auto mt-3">
+            <table class="data-table">
+              <thead><tr><th>Produk</th><th>Qty</th><th>Harga</th><th>Subtotal</th><th></th></tr></thead>
+              <tbody id="tabel-item-invoice"></tbody>
+            </table>
+          </div>
+
+          <div class="flex flex-col gap-2 max-w-md mt-3">
+            <label class="field-label">Diskon (%)</label>
+            <input type="number" id="inv-diskon-persen" value="0" min="0" class="field" />
+
+            <label class="field-label">Diskon (Rp)</label>
+            <input type="number" id="inv-diskon-nominal" value="0" min="0" class="field" />
+            <p class="text-xs text-gray-400">Diskon boleh diisi bebas sesuai kebijakan.</p>
+
+            <label class="field-label">Status</label>
+            <select id="inv-status" class="field">
+              <option value="lunas">lunas</option>
+              <option value="belum">belum</option>
+            </select>
+
+            <p id="inv-total" class="text-lg font-bold text-coklat dark:text-amber-400 mt-1">Total: Rp 0</p>
+
+            <button id="btn-simpan-invoice" class="btn-primary self-start">Simpan Invoice</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Daftar Invoice</h3>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <button id="btn-export-invoice-excel" class="btn-secondary">Export Excel</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead><tr><th>No.</th><th>Tgl</th><th>Pelanggan</th><th>Total</th><th>Status</th><th></th></tr></thead>
+              <tbody id="tabel-invoice"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- TAB: KAS ---------------- -->
+    <section id="tab-kas" class="tab-content hidden space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="summary-card"><span>Pemasukan</span><strong id="kas-pemasukan">Rp 0</strong></div>
+        <div class="summary-card"><span>Pengeluaran</span><strong id="kas-pengeluaran">Rp 0</strong></div>
+        <div class="summary-card col-span-2 sm:col-span-1"><span>Saldo</span><strong id="kas-saldo" class="text-green-600 dark:text-green-400">Rp 0</strong></div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Catat Transaksi Manual</h3>
+        <form id="form-kas" class="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center">
+          <input type="date" id="kas-tanggal" required class="field" />
+          <select id="kas-jenis" class="field">
+            <option value="pengeluaran">pengeluaran</option>
+            <option value="pemasukan">pemasukan</option>
+          </select>
+          <input type="text" id="kas-kategori" placeholder="Kategori (mis. Bahan Baku)" class="field" />
+          <input type="number" id="kas-jumlah" placeholder="Jumlah (Rp)" min="1" required class="field" />
+          <input type="text" id="kas-keterangan" placeholder="Keterangan" class="field flex-1 min-w-[160px]" />
+          <button type="submit" class="btn-primary">Simpan</button>
+        </form>
+        <button id="btn-export-kas-excel" class="btn-secondary mt-2">Export Excel</button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Riwayat Kas</h3>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Jumlah</th><th>Keterangan</th><th></th></tr></thead>
+            <tbody id="tabel-kas"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- TAB: LAPORAN ---------------- -->
+    <section id="tab-laporan" class="tab-content hidden space-y-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="btn-secondary" data-periode="hari">Hari Ini</button>
+        <button class="btn-secondary" data-periode="minggu">Minggu Ini</button>
+        <button class="btn-secondary" data-periode="bulan">Bulan Ini</button>
+        <span class="flex-1"></span>
+        <input type="date" id="lap-dari" class="field" />
+        <span class="text-sm">s/d</span>
+        <input type="date" id="lap-sampai" class="field" />
+        <button id="btn-lap-custom" class="btn-secondary">Tampilkan</button>
+      </div>
+
+      <p id="lap-periode-label" class="italic text-sm text-gray-500 dark:text-gray-400"></p>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="summary-card"><span>Pemasukan</span><strong id="lap-pemasukan">Rp 0</strong></div>
+        <div class="summary-card"><span>Pengeluaran</span><strong id="lap-pengeluaran">Rp 0</strong></div>
+        <div class="summary-card"><span>Saldo</span><strong id="lap-saldo" class="text-green-600 dark:text-green-400">Rp 0</strong></div>
+        <div class="summary-card"><span>Roti Terjual</span><strong id="lap-qty">0 pcs</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center gap-2 mb-2">
+          <h3 class="card-title !mb-0">Detail Transaksi Kas</h3>
+          <span class="flex-1"></span>
+          <button id="btn-export-laporan-excel" class="btn-secondary">Export Excel</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Jumlah</th><th>Keterangan</th></tr></thead>
+            <tbody id="tabel-laporan"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Template tersembunyi untuk render PNG invoice (di-capture html2canvas) -->
+<div id="invoice-render" class="fixed top-0 left-[-9999px] bg-white"></div>
+
+<style>
+  /* Tailwind CDN tidak punya build step, jadi kelas komponen di bawah ditulis
+     sebagai CSS biasa (bukan @apply) supaya tetap konsisten dengan tema. */
+  .card { background:#fff; border:1px solid #fde9c8; border-radius:12px; padding:16px; }
+  .dark .card { background:#111827; border-color:#1f2937; }
+
+  .card-title { color:#4a3222; font-weight:600; margin-bottom:12px; }
+  .dark .card-title { color:#fbbf24; }
+
+  .field { padding:8px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:14px; background:#fff; }
+  .dark .field { border-color:#374151; background:#1f2937; color:#f3f4f6; }
+  .field:focus { outline:none; box-shadow:0 0 0 2px #4a3222; }
+
+  .field-label { font-size:12px; font-weight:600; margin-top:4px; }
+
+  .btn-primary { padding:8px 16px; border-radius:8px; background:#4a3222; color:#fff; font-size:14px; font-weight:500; border:none; cursor:pointer; transition:background .15s; }
+  .btn-primary:hover { background:#7a5a3f; }
+
+  .btn-secondary { padding:8px 16px; border-radius:8px; border:1px solid #4a3222; color:#4a3222; font-size:14px; font-weight:500; background:transparent; cursor:pointer; transition:background .15s; }
+  .dark .btn-secondary { color:#fbbf24; border-color:#fbbf24; }
+  .btn-secondary:hover { background:#fef3c7; }
+  .dark .btn-secondary:hover { background:#1f2937; }
+
+  .data-table { width:100%; font-size:13px; border-collapse:collapse; min-width:480px; }
+  .data-table th { text-align:left; color:#6b7280; font-weight:600; padding:8px; border-bottom:1px solid #fde9c8; }
+  .dark .data-table th { color:#9ca3af; border-color:#374151; }
+  .data-table td { padding:8px; border-bottom:1px solid #fef3e2; }
+  .dark .data-table td { border-color:#1f2937; }
+  .data-table td button { font-size:12px; padding:4px 8px; }
+
+  .summary-card { background:#fff; border:1px solid #fde9c8; border-radius:12px; padding:12px; text-align:center; }
+  .dark .summary-card { background:#111827; border-color:#1f2937; }
+  .summary-card span { display:block; font-size:12px; color:#6b7280; margin-bottom:4px; }
+  .dark .summary-card span { color:#9ca3af; }
+  .summary-card strong { font-size:18px; }
+</style>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
