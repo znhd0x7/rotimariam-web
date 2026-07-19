@@ -283,15 +283,17 @@ function hitungTotal() {
   const subtotal = tempItems.reduce((s, it) => s + it.subtotal, 0);
   const diskonPersen = Number($("inv-diskon-persen").value) || 0;
   const diskonNominal = Number($("inv-diskon-nominal").value) || 0;
-  const total = Math.max(subtotal - diskonNominal - (subtotal * diskonPersen / 100), 0);
-  return { subtotal, diskonPersen, diskonNominal, total };
+  const ongkir = Number($("inv-ongkir").value) || 0;
+  const total = Math.max(subtotal - diskonNominal - (subtotal * diskonPersen / 100), 0) + ongkir;
+  return { subtotal, diskonPersen, diskonNominal, ongkir, total };
 }
 
 function updateTotalPreview() {
-  const { subtotal, total } = hitungTotal();
-  $("inv-total").textContent = `Total: ${formatRp(total)}  (Subtotal ${formatRp(subtotal)})`;
+  const { subtotal, ongkir, total } = hitungTotal();
+  const ongkirText = ongkir ? ` + Ongkir ${formatRp(ongkir)}` : "";
+  $("inv-total").textContent = `Total: ${formatRp(total)}  (Subtotal ${formatRp(subtotal)}${ongkirText})`;
 }
-["inv-diskon-persen", "inv-diskon-nominal"].forEach((id) => $(id).addEventListener("input", updateTotalPreview));
+["inv-diskon-persen", "inv-diskon-nominal", "inv-ongkir"].forEach((id) => $(id).addEventListener("input", updateTotalPreview));
 
 async function generateNomorInvoice(tanggal) {
   const snap = await getDocs(query(collection(dbf, "invoice"), where("tanggal", "==", tanggal)));
@@ -302,14 +304,14 @@ async function generateNomorInvoice(tanggal) {
 $("btn-simpan-invoice").addEventListener("click", async () => {
   if (!tempItems.length) { alert("Tambahkan minimal 1 item."); return; }
   const tanggal = $("inv-tanggal").value || todayStr();
-  const { subtotal, diskonPersen, diskonNominal, total } = hitungTotal();
+  const { subtotal, diskonPersen, diskonNominal, ongkir, total } = hitungTotal();
   const status = $("inv-status").value;
   const nomor = await generateNomorInvoice(tanggal);
 
   const invoiceRef = await addDoc(collection(dbf, "invoice"), {
     nomor, tanggal, nama_pelanggan: $("inv-pelanggan").value || "",
     subtotal, diskon_persen: diskonPersen, diskon_nominal: diskonNominal,
-    total, status, items: tempItems, createdAt: serverTimestamp(),
+    ongkir, total, status, items: tempItems, createdAt: serverTimestamp(),
   });
 
   for (const it of tempItems) {
@@ -333,6 +335,7 @@ $("btn-simpan-invoice").addEventListener("click", async () => {
   $("inv-pelanggan").value = "";
   $("inv-diskon-persen").value = 0;
   $("inv-diskon-nominal").value = 0;
+  $("inv-ongkir").value = 0;
 
   await Promise.all([loadProduk(), loadInvoices(), loadKas(), loadStokLog()]);
 });
@@ -432,6 +435,7 @@ window._exportPdf = function (invoiceId) {
   docPdf.text(`Subtotal: ${formatRp(inv.subtotal)}`, 95, y); y += 6;
   if (inv.diskon_persen) { docPdf.text(`Diskon: ${inv.diskon_persen}%`, 95, y); y += 6; }
   if (inv.diskon_nominal) { docPdf.text(`Diskon: -${formatRp(inv.diskon_nominal)}`, 95, y); y += 6; }
+  if (inv.ongkir) { docPdf.text(`Ongkir: ${formatRp(inv.ongkir)}`, 95, y); y += 6; }
   docPdf.setFont(undefined, "bold");
   docPdf.text(`TOTAL: ${formatRp(inv.total)}`, 95, y);
 
@@ -472,6 +476,7 @@ function buildInvoiceHtml(inv) {
         <div>Subtotal: ${formatRp(inv.subtotal)}</div>
         ${inv.diskon_persen ? `<div>Diskon: ${inv.diskon_persen}%</div>` : ""}
         ${inv.diskon_nominal ? `<div>Diskon: -${formatRp(inv.diskon_nominal)}</div>` : ""}
+        ${inv.ongkir ? `<div>Ongkir: ${formatRp(inv.ongkir)}</div>` : ""}
         <div style="font-weight:bold;font-size:14px;margin-top:6px;color:#4a3222;">TOTAL: ${formatRp(inv.total)}</div>
       </div>
       <p style="margin-top:20px;font-size:11px;color:#888;">Terima kasih atas pembeliannya!</p>
@@ -496,7 +501,7 @@ $("btn-export-invoice-excel").addEventListener("click", () => {
   const rows = invoiceCache.map((inv) => ({
     "No. Invoice": inv.nomor, Tanggal: inv.tanggal, Pelanggan: inv.nama_pelanggan || "-",
     Subtotal: inv.subtotal, "Diskon %": inv.diskon_persen, "Diskon Rp": inv.diskon_nominal,
-    Total: inv.total, Status: inv.status,
+    Ongkir: inv.ongkir || 0, Total: inv.total, Status: inv.status,
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
